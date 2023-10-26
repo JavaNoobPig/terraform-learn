@@ -45,7 +45,7 @@ pipeline {
               sh "terraform init"
               sh "terraform apply --auto-approve"
               EC2_PUBLIC_IP = sh(
-                script: "terraform output ec2_public_ip"
+                script: "terraform output ec2_public_ip",
                 returnStdout: true
               ).trim()
           }
@@ -55,13 +55,17 @@ pipeline {
     stage('deploy') {
       steps {
         script {
-          echo 'EC2 Server have already done docker login, so do not need to login again!'
+          echo 'waiting for EC2 server to initialize'
+          sleep(time: 90,unit: "SECONDS")
+
+          echo 'deploying docker image ot EC2...'
+          echo "${EC2_PUBLIC_IP}"
 
           def shellCmd = "bash ./server-cmds.sh ${IMAGE_NAME}"
           def ec2Instance = "ec2-user@${EC2_PUBLIC_IP}"
-          sshagent(['ec2-server-key']) {
-               sh "scp server-cmds.sh ${ec2Instance}:/home/ec2-user"
-               sh "scp docker-compose.yaml ${ec2Instance}:/home/ec2-user"
+          sshagent(['server-ssh-key']) {
+               sh "scp -o StrictHostKeyChecking=no server-cmds.sh ${ec2Instance}:/home/ec2-user"
+               sh "scp -o StrictHostKeyChecking=no docker-compose.yaml ${ec2Instance}:/home/ec2-user"
                sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} ${shellCmd}"
           }
           echo 'deploying application...'
