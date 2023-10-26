@@ -13,6 +13,7 @@ pipeline {
   }
   environment {
     IMAGE_NAME = 'javapig/demo-app:ec2-test'
+    BRANCH_NAME = 'feature/sshagent-terraform'
   }
   stages {
     stage('build Jar') {
